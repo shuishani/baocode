@@ -2800,7 +2800,7 @@ class _GrantFrameState extends State<_GrantFrame> {
 }
 
 /// A window of an account's quota: how long it is, a bar of how much of
-/// it is used, and when it starts over.
+/// it is left, and when it starts over.
 class _QuotaLine extends StatelessWidget {
   const _QuotaLine(this.window);
 
@@ -2809,14 +2809,14 @@ class _QuotaLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final used = window.usedPercent.clamp(0, 100).toDouble();
-    final color = used >= 90
+    final left = window.leftPercent;
+    final color = left <= 10
         ? themeColors['errorForeground']
-        : used >= 70
+        : left <= 30
         ? AppColors.caution
         : AppColors.added;
     final detail = [
-      l10n.modelsQuotaUsed(used.round()),
+      l10n.modelsQuotaRemaining(left.round()),
       if (window.resetsAt case final at?) quotaResets(l10n, at, DateTime.now()),
     ].join(' · ');
     return Padding(
@@ -2839,7 +2839,7 @@ class _QuotaLine extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
             child: FractionallySizedBox(
-              widthFactor: used / 100,
+              widthFactor: left / 100,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
