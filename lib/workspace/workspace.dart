@@ -3246,6 +3246,14 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
               },
             });
 
+  /// The user saw [thread] elsewhere (on their phone): no longer unread.
+  void markSeen(AgentThread thread) {
+    if (!thread.unread) return;
+    thread._markSeen();
+    _snapshots[thread] = thread._snapshot;
+    notifyListeners();
+  }
+
   /// Marks what shows as seen, while the window is in front; whether any
   /// was unread.
   bool _markShownSeen() {

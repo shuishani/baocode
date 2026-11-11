@@ -46,7 +46,7 @@ void main() {
           '~/code/baocode/node_modules/x/index.js': '',
           '/tmp/a.log': 'started',
         }),
-        paths: p.posix,
+        paths: p.context,
       ),
     );
     await host.load();
@@ -614,7 +614,7 @@ void main() {
       platform: platform,
       filesOf: (project) => (
         files: _MemoryFiles({'~/code/baocode/README.md': '#'}),
-        paths: p.posix,
+        paths: p.context,
       ),
       reachHost: (project) async => throw StateError('ssh: timed out'),
     );
@@ -653,7 +653,7 @@ void main() {
           '/code/api/go.mod': 'module api',
           '${made.path}/shot.png': 'png',
         }),
-        paths: p.posix,
+        paths: p.context,
       ),
     );
     await host.load();
@@ -727,7 +727,7 @@ void main() {
     });
     expect(
       multi.threads.map((t) => t.title),
-      contains('look at @/code/api/main.go'),
+      contains('look at @${p.normalize('/code/api/main.go')}'),
     );
   });
 
@@ -1022,7 +1022,11 @@ Future<void> _until(bool Function() done) async {
 
 /// Files kept in memory, by absolute path; null for a binary one.
 class _MemoryFiles implements IdeFileService {
-  _MemoryFiles(this.files);
+  // These are local projects: sessions and the file index use native paths.
+  _MemoryFiles(Map<String, String?> files)
+    : files = {
+        for (final entry in files.entries) p.normalize(entry.key): entry.value,
+      };
 
   final Map<String, String?> files;
 
@@ -1030,20 +1034,21 @@ class _MemoryFiles implements IdeFileService {
   Future<List<IdeFile>> list(String directory) async {
     final entries = <String, bool>{};
     for (final path in files.keys) {
-      if (!p.posix.isWithin(directory, path)) continue;
-      final rest = p.posix.relative(path, from: directory).split('/');
+      if (!p.isWithin(directory, path)) continue;
+      final rest = p.split(p.relative(path, from: directory));
       entries[rest.first] = rest.length > 1;
     }
     return [
       for (final MapEntry(key: name, value: directory_) in entries.entries)
-        IdeFile(p.posix.join(directory, name), name, isDirectory: directory_),
+        IdeFile(p.join(directory, name), name, isDirectory: directory_),
     ];
   }
 
   @override
   Future<String> read(String path, {bool force = false}) async {
-    if (!files.containsKey(path)) throw IdeFileNotFoundException(path);
-    return files[path] ?? (throw IdeBinaryFileException(path));
+    final normalized = p.normalize(path);
+    if (!files.containsKey(normalized)) throw IdeFileNotFoundException(path);
+    return files[normalized] ?? (throw IdeBinaryFileException(path));
   }
 
   @override
